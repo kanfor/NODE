@@ -19,28 +19,77 @@ app.get('/', function (req, res) {
     res.send("Bienvenido al servidor NODE");
 });
 
+//Reset DB.
+app.get('/resetdb', function (req, res) {
+    var newDb = {};
+    var arrayUsers = [];
+    var user = {};
+    user.name = "paco";
+    user.pass = "xxx";
+    user.gold = "100";
+    arrayUsers.push(user);
+    
+    newDb.users = arrayUsers;
+    
+    //res.send(x.users[0].name);
+    
+    db.write(newDb).then(x => {
+        res.json(newDb);
+    });
+});
+
+//Leer DB.
+app.get('/db', function (req, res) {
+    db.load().then(x => {
+        res.send(x);
+    });
+});
+
 //Comprobar si existe el usuario.
 app.get('/user/:nameUser/:passUser', function (req, res) {
     db.load().then(x => {
-        if (req.params.nameUser === x.nombre) {
-            if (req.params.passUser === x.pass) {
-                res.send("Existe " + req.params.nameUser + " y el pass es correcto");
+        for (var i = 0; i < x.users.length; i++) {
+            if (req.params.nameUser === x.users[i].name) {
+                console.log("Usuario " + req.params.nameUser + "existe");
+                if (req.params.passUser === x.users[i].pass) {
+                    console.log("LOGIN CORRECTO");
+                    //Devolvermos informacion del usuario.
+                    res.send(x.users[i]);
+                } else {
+                    console.log("Usuario existe pero pass incorrecto");
+                    res.send("900");
+                }
             } else {
-                res.send("Existe " + req.params.nameUser + " pero el pass no es correcto");
+                console.log("Usuario " + req.params.nameUser + "NO existe");
+                res.send("901");
             }
-        } else {
-            res.send("No existe " + req.params.nameUser);
         }
     });
 });
 
 //Crear usuario. TODO cambia a POST para el Ajax.
 app.get('/user2/:nameUser/:passUser', function (req, res) {
-    let output = {};
-    output.nombre = req.params.nameUser;
-    output.pass = req.params.passUser;
-    db.write(output).then(x => {
-        res.send("Guardado " + req.params.nameUser);
+    //Obtenemos base de datos.
+    db.load().then(x => {
+        var exist = false;
+        for (var i = 0; i < x.users.length; i++) {
+            if (req.params.nameUser === x.users[i].name) {
+                exist = true;
+                console.log("Usuario " + req.params.nameUser + " YA existe");
+                res.send("902");
+            }
+        }
+        if (!exist) {
+            var newDb = x;
+            var user = {};
+            user.name = req.params.nameUser;
+            user.pass = req.params.passUser;
+            user.gold = "100";
+            newDb.users.push(user);
+            db.write(newDb).then(x => {
+                res.json(newDb);
+            });
+        }
     });
 });
 
